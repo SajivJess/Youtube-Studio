@@ -83,7 +83,11 @@ export default function Leonidex() {
   const [videoPathInput, setVideoPathInput] = useState("");
   const [videoLoading, setVideoLoading] = useState(false);
   const [videoError, setVideoError] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
   const videoPlayerRef = useRef<HTMLVideoElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 3. Highlight Analysis State
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -220,7 +224,7 @@ export default function Leonidex() {
         const data = await res.json();
         if (data.loaded) {
           setVideoMeta(data);
-          setVideoPathInput(data.file_path);
+          setVideoPathInput(data.path || data.file_path || "");
           fetchCandidates();
           fetchExportStatus();
         }
@@ -230,26 +234,82 @@ export default function Leonidex() {
     }
   };
 
-  const handleNativeBrowse = async () => {
+  const handleNativeBrowse = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChosen = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    await processSelectedFile(file);
+  };
+
+  const processSelectedFile = async (file: File) => {
     setVideoLoading(true);
     setVideoError(null);
     try {
-      const res = await fetch("/api/video/open-dialog", { method: "POST" });
+      // Step A: Fast path - ask backend if this exact file exists in common local folders (Downloads, Videos, etc.)
+      const res = await fetch("/api/video/resolve-file", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filename: file.name, size: file.size }),
+      });
       if (res.ok) {
         const data = await res.json();
-        if (data.success && data.file_path) {
+        if (data.found && data.file_path) {
           setVideoPathInput(data.file_path);
           await loadVideoFile(data.file_path);
+          return;
         }
       }
-    } catch (e: any) {
-      setVideoError(e.message);
+
+      // Step B: Upload file into local workspace if not located in common folders
+      setIsUploading(true);
+      setUploadProgress(0);
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", "/api/video/upload");
+      xhr.upload.onprogress = (pe) => {
+        if (pe.lengthComputable) {
+          setUploadProgress(Math.round((pe.loaded / pe.total) * 100));
+        }
+      };
+
+      const uploadResult = await new Promise<{ success: boolean; file_path: string }>((resolve, reject) => {
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve(JSON.parse(xhr.responseText));
+          } else {
+            reject(new Error("Video upload failed"));
+          }
+        };
+        xhr.onerror = () => reject(new Error("Network connection error during file upload"));
+        xhr.send(formData);
+      });
+
+      setIsUploading(false);
+      if (uploadResult.success && uploadResult.file_path) {
+        setVideoPathInput(uploadResult.file_path);
+        await loadVideoFile(uploadResult.file_path);
+      }
+    } catch (err: any) {
+      setIsUploading(false);
+      setVideoError(err.message || "Failed to inspect selected video file");
     } finally {
       setVideoLoading(false);
     }
   };
 
-  const loadVideoFile = async (path: string) => {
+  const loadVideoFile = async (rawPath: string) => {
+    const path = (rawPath || "").trim().replace(/^["']+|["']+$/g, "").trim();
+    if (!path) {
+      setVideoError("Please provide a valid video file path.");
+      return;
+    }
+    setVideoPathInput(path);
     setVideoLoading(true);
     setVideoError(null);
     try {
@@ -416,13 +476,13 @@ export default function Leonidex() {
   };
 
   const handleSaveProfile = async () => {
-    if (!newProfileName.trim()) return;
+    if (!(newProfileName || "").trim()) return;
     try {
       const res = await fetch("/api/minimap/profiles", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          profile_name: newProfileName.trim(),
+          profile_name: (newProfileName || "").trim(),
           x_norm: calX,
           y_norm: calY,
           w_norm: calW,
@@ -664,29 +724,73 @@ export default function Leonidex() {
       </div>
 
       {/* SECTION 1: VIDEO INGESTION & LOCAL PLAYER */}
-      <div className="card" style={{ padding: 20, marginBottom: 24, borderRadius: "var(--r-lg)" }}>
+      <div
+        className="card"
+        onDragOver={(e) => {
+          e.preventDefault();
+          setIsDragging(true);
+        }}
+        onDragLeave={() => setIsDragging(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setIsDragging(false);
+          const f = e.dataTransfer.files?.[0];
+          if (f) processSelectedFile(f);
+        }}
+        style={{
+          padding: 20,
+          marginBottom: 24,
+          borderRadius: "var(--r-lg)",
+          border: isDragging ? "2px dashed var(--accent)" : undefined,
+          background: isDragging ? "var(--surface-hover)" : undefined,
+          transition: "border 0.2s, background 0.2s",
+        }}
+      >
+        {/* Hidden browser native file picker */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="video/mp4,video/x-matroska,video/quicktime,video/webm,video/*,.mp4,.mkv,.mov,.avi,.webm"
+          style={{ display: "none" }}
+          onChange={handleFileChosen}
+        />
+
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
           <h2 style={{ margin: 0, fontSize: "1.2rem", fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}>
             <Icon name="film" size={20} /> 1. Source Video Ingestion (Local Only)
           </h2>
-          <button className="btn btn-primary" onClick={handleNativeBrowse} disabled={videoLoading}>
-            <Icon name="upload" size={16} /> {videoLoading ? "Inspecting Video..." : "Browse Video File..."}
+          <button className="btn btn-primary" onClick={handleNativeBrowse} disabled={videoLoading || isUploading}>
+            <Icon name="upload" size={16} /> {videoLoading ? (isUploading ? `Uploading ${uploadProgress}%...` : "Inspecting Video...") : "Browse Video File..."}
           </button>
         </div>
+
+        {isUploading && (
+          <div style={{ marginBottom: 16, padding: "10px 14px", background: "var(--surface-2)", borderRadius: "var(--r-md)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.85rem", marginBottom: 6 }}>
+              <span>Streaming video to workspace storage...</span>
+              <span className="mono">{uploadProgress}%</span>
+            </div>
+            <ProgressBar value={uploadProgress / 100} />
+          </div>
+        )}
 
         <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
           <input
             className="input"
             type="text"
-            placeholder="Or enter absolute path (e.g. C:\CODING FILES\YT CLIP\sample_gta_gameplay.mp4)"
-            value={videoPathInput}
+            placeholder="Or enter absolute path (e.g. C:\Users\COSMIC\Downloads\gameplay.mp4)"
+            value={videoPathInput || ""}
             onChange={(e) => setVideoPathInput(e.target.value)}
+            onBlur={(e) => setVideoPathInput((e.target.value || "").replace(/^["']+|["']+$/g, "").trim())}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") loadVideoFile(videoPathInput);
+            }}
             style={{ flex: 1 }}
           />
           <button
             className="btn btn-secondary"
             onClick={() => loadVideoFile(videoPathInput)}
-            disabled={videoLoading || !videoPathInput}
+            disabled={videoLoading || !(videoPathInput || "").trim()}
           >
             Load Path
           </button>
@@ -1104,7 +1208,7 @@ export default function Leonidex() {
                 <button
                   className="btn btn-secondary btn-sm"
                   onClick={handleSaveProfile}
-                  disabled={!newProfileName.trim()}
+                  disabled={!(newProfileName || "").trim()}
                 >
                   Save Profile
                 </button>

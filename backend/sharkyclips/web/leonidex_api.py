@@ -15,7 +15,7 @@ from typing import Optional, List, Dict, Any
 
 import cv2
 import numpy as np
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, BackgroundTasks
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, Response, BackgroundTasks, UploadFile
 from fastapi.responses import StreamingResponse, FileResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -76,6 +76,10 @@ active_state = ActiveState()
 # Schemas
 class LoadVideoReq(BaseModel):
     file_path: str
+
+class ResolveFileReq(BaseModel):
+    filename: str
+    size: Optional[int] = None
 
 class CalibrationReq(BaseModel):
     x_norm: float
@@ -150,40 +154,59 @@ def set_hardware_preferences(req: HardwarePrefReq):
 # -------------------------------------------------------------
 # 2. VIDEO INGESTION & STREAMING (LOCAL ONLY)
 # -------------------------------------------------------------
-@router.post("/video/open-dialog")
-def open_native_file_dialog():
-    """Opens native Windows file picker dialog."""
-    import tkinter as tk
-    from tkinter import filedialog
-    selected_path = None
+@router.post("/video/resolve-file")
+def resolve_local_file(req: ResolveFileReq):
+    """Searches common local user directories for a file selected via browser."""
+    fn = req.filename.strip().strip('"').strip("'")
+    if not fn:
+        return {"found": False}
 
-    def ask_file():
-        nonlocal selected_path
-        root = tk.Tk()
-        root.withdraw()
-        root.attributes("-topmost", True)
-        selected_path = filedialog.askopenfilename(
-            title="Select Gameplay Video File",
-            filetypes=[
-                ("Video Files", "*.mp4 *.mkv *.mov *.avi *.webm"),
-                ("MP4 Videos", "*.mp4"),
-                ("MKV Videos", "*.mkv"),
-                ("QuickTime MOV", "*.mov"),
-                ("All Files", "*.*")
-            ]
-        )
-        root.destroy()
+    candidates = [
+        Path.home() / "Downloads" / fn,
+        Path.home() / "Videos" / fn,
+        Path.home() / "Desktop" / fn,
+        Path.home() / "Documents" / fn,
+        Path("C:/CODING FILES/YT CLIP") / fn,
+        Path.cwd() / fn,
+    ]
+    for cand in candidates:
+        if cand.is_file():
+            return {"found": True, "file_path": str(cand.resolve())}
 
-    t = threading.Thread(target=ask_file)
-    t.start()
-    t.join(timeout=60)
-    return {"success": bool(selected_path), "file_path": selected_path}
+    for base in [Path.home() / "Downloads", Path.home() / "Videos"]:
+        if base.is_dir():
+            try:
+                for sub in base.iterdir():
+                    if sub.is_dir():
+                        nested = sub / fn
+                        if nested.is_file():
+                            return {"found": True, "file_path": str(nested.resolve())}
+            except Exception:
+                pass
+
+    return {"found": False}
+
+@router.post("/video/upload")
+async def upload_video_file(file: UploadFile = File(...)):
+    """Receives video stream from the browser into local workspace/data/uploads/."""
+    upload_dir = Path("workspace/data/uploads")
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    clean_name = Path(file.filename or "uploaded_video.mp4").name
+    dest_path = upload_dir / clean_name
+    with open(dest_path, "wb") as f:
+        while chunk := await file.read(1024 * 1024 * 8):
+            f.write(chunk)
+    return {"success": True, "file_path": str(dest_path.resolve())}
 
 @router.post("/video/load")
 def load_video_endpoint(req: LoadVideoReq, db: Session = Depends(get_db)):
-    p = Path(req.file_path).resolve()
+    clean_path = str(req.file_path or "").strip().strip('"').strip("'")
+    if not clean_path:
+        raise HTTPException(status_code=400, detail="Empty video file path provided")
+
+    p = Path(clean_path).resolve()
     if not p.is_file():
-        raise HTTPException(status_code=404, detail=f"File not found: {req.file_path}")
+        raise HTTPException(status_code=404, detail=f"File not found on disk: {clean_path}")
 
     try:
         meta = probe_video_meta(str(p))
