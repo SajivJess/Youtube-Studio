@@ -83,6 +83,11 @@ def probe_video_meta(file_path: str) -> Dict[str, Any]:
         elif abs(ratio - 9/16) < 0.05:
             aspect_ratio = "9:16"
 
+    file_size_mb = round(file_size / (1024 * 1024), 2)
+    mins = int(duration // 60)
+    secs = int(duration % 60)
+    duration_str = f"{mins:02d}:{secs:02d}"
+
     return {
         "path": str(p),
         "filename": p.name,
@@ -91,7 +96,9 @@ def probe_video_meta(file_path: str) -> Dict[str, Any]:
         "aspect_ratio": aspect_ratio,
         "fps": fps,
         "duration": duration,
+        "duration_str": duration_str,
         "file_size": file_size,
+        "file_size_mb": file_size_mb,
         "video_codec": v_stream.get("codec_name", "unknown"),
         "has_audio": a_stream is not None,
         "audio_codec": a_stream.get("codec_name") if a_stream else None,

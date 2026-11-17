@@ -33,8 +33,8 @@ _ALL = [
 
 LANGUAGES: dict[str, Language] = {lang.code: lang for lang in _ALL}
 
-DEFAULT_UI_LANGUAGE = "tr"
-DEFAULT_OUTPUT_LANGUAGE = "tr"
+DEFAULT_UI_LANGUAGE = "en"
+DEFAULT_OUTPUT_LANGUAGE = "en"
 
 
 def codes() -> list[str]:

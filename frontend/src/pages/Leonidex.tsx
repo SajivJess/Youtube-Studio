@@ -640,7 +640,7 @@ export default function Leonidex() {
         {hwPlan && (
           <div style={{ display: "flex", gap: 12, marginTop: 16, flexWrap: "wrap", alignItems: "center" }}>
             <span className="chip" style={{ fontSize: "0.8rem", background: "var(--surface-2)" }}>
-              <Icon name="settings" size={14} /> <b>CPU:</b> {hwPlan.detected_cpu} ({hwPlan.cpu_physical_cores}C/{hwPlan.cpu_logical_cores}T, {hwPlan.ram_total_gb.toFixed(0)} GB RAM)
+              <Icon name="settings" size={14} /> <b>CPU:</b> {hwPlan.detected_cpu} ({hwPlan.cpu_physical_cores}C/{hwPlan.cpu_logical_cores}T, {(hwPlan.ram_total_gb ?? 0).toFixed(0)} GB RAM)
             </span>
             <span className="chip" style={{ fontSize: "0.8rem", background: "var(--surface-2)" }}>
               <Icon name="sparkles" size={14} /> <b>GPU:</b> {hwPlan.detected_gpu || "None"}
@@ -732,7 +732,7 @@ export default function Leonidex() {
                   </tr>
                   <tr>
                     <td style={{ color: "var(--muted)" }}>Duration</td>
-                    <td className="mono">{videoMeta.duration_str} ({videoMeta.duration.toFixed(1)}s)</td>
+                    <td className="mono">{videoMeta.duration_str || `${Math.floor((videoMeta.duration || 0) / 60)}:${Math.floor((videoMeta.duration || 0) % 60)}`} ({((videoMeta.duration) || 0).toFixed(1)}s)</td>
                   </tr>
                   <tr>
                     <td style={{ color: "var(--muted)" }}>Resolution</td>
@@ -740,7 +740,7 @@ export default function Leonidex() {
                   </tr>
                   <tr>
                     <td style={{ color: "var(--muted)" }}>Frame Rate</td>
-                    <td className="mono">{videoMeta.fps.toFixed(1)} FPS</td>
+                    <td className="mono">{((videoMeta.fps) || 30).toFixed(1)} FPS</td>
                   </tr>
                   <tr>
                     <td style={{ color: "var(--muted)" }}>Video Codec</td>
@@ -751,7 +751,7 @@ export default function Leonidex() {
                     <td>
                       {videoMeta.has_audio ? (
                         <span className="chip chip-success" style={{ fontSize: "0.75rem" }}>
-                          {videoMeta.audio_codec.toUpperCase()} Present
+                          {(videoMeta.audio_codec || "AUDIO").toUpperCase()} Present
                         </span>
                       ) : (
                         <span className="chip chip-warn" style={{ fontSize: "0.75rem" }}>
@@ -762,7 +762,7 @@ export default function Leonidex() {
                   </tr>
                   <tr>
                     <td style={{ color: "var(--muted)" }}>File Size</td>
-                    <td className="mono">{videoMeta.file_size_mb.toFixed(1)} MB</td>
+                    <td className="mono">{((videoMeta.file_size_mb ?? ((videoMeta.file_size || 0) / (1024 * 1024))) || 0).toFixed(1)} MB</td>
                   </tr>
                 </tbody>
               </table>
@@ -1002,7 +1002,7 @@ export default function Leonidex() {
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.78rem" }}>
                 <span>X Offset</span>
-                <span className="mono">{(calX * 100).toFixed(1)}%</span>
+                <span className="mono">{(((calX ?? 0) * 100)).toFixed(1)}%</span>
               </div>
               <input
                 type="range"
@@ -1017,7 +1017,7 @@ export default function Leonidex() {
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.78rem" }}>
                 <span>Y Offset</span>
-                <span className="mono">{(calY * 100).toFixed(1)}%</span>
+                <span className="mono">{(((calY ?? 0) * 100)).toFixed(1)}%</span>
               </div>
               <input
                 type="range"
@@ -1032,7 +1032,7 @@ export default function Leonidex() {
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.78rem" }}>
                 <span>Crop Width</span>
-                <span className="mono">{(calW * 100).toFixed(1)}%</span>
+                <span className="mono">{(((calW ?? 0) * 100)).toFixed(1)}%</span>
               </div>
               <input
                 type="range"
@@ -1047,7 +1047,7 @@ export default function Leonidex() {
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.78rem" }}>
                 <span>Crop Height</span>
-                <span className="mono">{(calH * 100).toFixed(1)}%</span>
+                <span className="mono">{(((calH ?? 0) * 100)).toFixed(1)}%</span>
               </div>
               <input
                 type="range"
@@ -1231,7 +1231,7 @@ export default function Leonidex() {
                 <div>
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.78rem", marginBottom: 4 }}>
                     <span style={{ fontWeight: 600 }}>HUD Scale</span>
-                    <span className="mono">{minimapScale.toFixed(2)}x</span>
+                    <span className="mono">{((minimapScale ?? 1.35)).toFixed(2)}x</span>
                   </div>
                   <input
                     type="range"

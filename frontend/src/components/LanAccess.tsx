@@ -10,21 +10,21 @@ import { Icon } from "./Icons";
 /** Shows the login screen instead of the app when this device needs the access PIN. */
 export function LanGate({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<AuthStatus | null>(null);
-  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     api
       .authStatus()
       .then(setStatus)
-      .catch(() => setFailed(true)); // old server or offline: let the app show its own errors
+      .catch(() => {}); // offline or error: don't block app rendering
     const onLost = () => setStatus((s) => (s ? { ...s, required: true, authenticated: false } : s));
     window.addEventListener(AUTH_EVENT, onLost);
     return () => window.removeEventListener(AUTH_EVENT, onLost);
   }, []);
 
-  if (failed || (status && (!status.required || status.authenticated))) return <>{children}</>;
-  if (!status) return null;
-  return <LanLogin kind={status.kind} onDone={() => window.location.reload()} />;
+  if (status && status.required && !status.authenticated) {
+    return <LanLogin kind={status.kind} onDone={() => window.location.reload()} />;
+  }
+  return <>{children}</>;
 }
 
 function LanLogin({ kind, onDone }: { kind: AuthStatus["kind"]; onDone: () => void }) {

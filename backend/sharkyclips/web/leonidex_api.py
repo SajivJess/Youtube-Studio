@@ -241,10 +241,17 @@ def load_video_endpoint(req: LoadVideoReq, db: Session = Depends(get_db)):
 def get_video_info():
     if not active_state.current_meta:
         return {"loaded": False}
+    meta = dict(active_state.current_meta)
+    if "file_size_mb" not in meta and "file_size" in meta:
+        meta["file_size_mb"] = round(meta["file_size"] / (1024 * 1024), 2)
+    if "duration_str" not in meta and "duration" in meta:
+        mins = int(meta["duration"] // 60)
+        secs = int(meta["duration"] % 60)
+        meta["duration_str"] = f"{mins:02d}:{secs:02d}"
     return {
         "loaded": True,
         "session_id": active_state.session_id,
-        **active_state.current_meta
+        **meta
     }
 
 @router.get("/video/frame")
