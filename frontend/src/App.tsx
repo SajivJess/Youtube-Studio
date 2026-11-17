@@ -7,7 +7,6 @@ import { Icon } from "./components/Icons";
 import { DevBanner, Footer, StaleServerBar, WhatsNew } from "./components/Shell";
 import { IgManualBar } from "./components/IgManual";
 import { YoutubeSignedOutBanner } from "./components/YoutubeConnect";
-import Launch from "./components/Launch";
 import { Onboarding } from "./components/Welcome";
 import { jobLabel } from "./components/ui";
 import { UI_LANGUAGES, useI18n } from "./i18n";
@@ -51,6 +50,9 @@ function EasyTopBar() {
           <BrandMark />
         </span>
         <span className="brand-name">LEONIDEX</span>
+        <span className="chip" style={{ marginLeft: 6, fontSize: "0.68rem", fontWeight: 700, background: "var(--gold-soft)", color: "var(--gold-text)", border: "1px solid var(--gold-line)" }}>
+          9:16 SHORTS
+        </span>
       </a>
       <nav className="nav">
         <a href={href.leonidex} aria-current={route.name === "leonidex" ? "page" : undefined}>
@@ -119,6 +121,9 @@ function TopBar() {
           <BrandMark />
         </span>
         <span className="brand-name">LEONIDEX</span>
+        <span className="chip" style={{ marginLeft: 6, fontSize: "0.68rem", fontWeight: 700, background: "var(--gold-soft)", color: "var(--gold-text)", border: "1px solid var(--gold-line)" }}>
+          9:16 SHORTS
+        </span>
       </a>
       <nav className="nav">
         <a href={href.leonidex} aria-current={route.name === "leonidex" ? "page" : undefined}>
@@ -235,30 +240,22 @@ function ShutdownBanner() {
 export default function App() {
   const route = useRoute();
   const { state, set } = useAppState();
-  const { mode, settings: ui, update: updateUi } = useUiMode();
+  const { mode, update: updateUi } = useUiMode();
   const easy = mode === "easy";
-  const [splashDone, setSplashDone] = useState(false);
-  const [onboarded, setOnboarded] = useState(false);
   const [manualWhatsNew, setManualWhatsNew] = useState(false);
-  const [whatsNewClosed, setWhatsNewClosed] = useState(false);
-  const showOnboarding = splashDone && !onboarded && !!state?.onboarding;
-  const autoWhatsNew = splashDone && !showOnboarding && !!state?.whats_new && !whatsNewClosed;
-  const showTour =
-    easy && splashDone && !showOnboarding && !autoWhatsNew && !manualWhatsNew && !!ui && !ui.tour_done && route.name === "library";
+  const showOnboarding = false;
+  const autoWhatsNew = false;
+  const showTour = false;
   const closeWhatsNew = () => {
     if (autoWhatsNew && state?.whats_new) api.whatsNewSeen(state.whats_new).then(set).catch(() => {});
-    setWhatsNewClosed(true);
     setManualWhatsNew(false);
   };
   if (route.name === "approve") {
     // The phone approval page: full screen, no top bar (an installable web app on the Wi-Fi).
     return (
-      <>
-        <Suspense fallback={null}>
-          <Approve />
-        </Suspense>
-        {!splashDone && <Launch onDone={() => setSplashDone(true)} />}
-      </>
+      <Suspense fallback={null}>
+        <Approve />
+      </Suspense>
     );
   }
   return (
@@ -291,9 +288,8 @@ export default function App() {
       {(autoWhatsNew || manualWhatsNew) && state && (
         <WhatsNew version={state.whats_new ?? state.version} onClose={closeWhatsNew} />
       )}
-      {showOnboarding && <Onboarding onDone={() => setOnboarded(true)} />}
+      {showOnboarding && <Onboarding onDone={() => {}} />}
       {showTour && <EasyTour onDone={() => updateUi({ tour_done: true })} />}
-      {!splashDone && <Launch onDone={() => setSplashDone(true)} />}
     </>
   );
 }

@@ -249,7 +249,7 @@ export function Footer({ onWhatsNew }: { onWhatsNew: () => void }) {
   return (
     <footer className="app-footer">
       <span>
-        SharkyClips <span className="mono">{state.version}</span>
+        LEONIDEX <span className="mono">{state.version}</span>
       </span>
       <span aria-hidden="true">·</span>
       <button className="link-btn" onClick={onWhatsNew}>
