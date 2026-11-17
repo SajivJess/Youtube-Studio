@@ -1,0 +1,19 @@
+# LEONIDEX — Dependencies
+# Tech Stack: React 18 · FastAPI · SQLite · FFmpeg / OpenCV
+
+fastapi>=0.115
+uvicorn>=0.30
+sqlalchemy>=2.0
+pydantic>=2.0
+numpy>=1.24.0
+scipy>=1.10.0
+Pillow>=9.5.0
+opencv-python-headless>=4.8.0
+psutil>=5.9
+rich>=13.7
+pytest>=7.0
+pytest-asyncio>=0.21.0
+httpx>=0.25.0
+
+# Upstream SharkyClips backend requirements
+-r backend/requirements.txt

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 // Hash routes: works from any server path and survives reloads without server config.
 export type StudioTab = "music" | "brand" | "words" | "games";
 export type Route =
+  | { name: "leonidex" }
   | { name: "library" }
   | { name: "project"; id: string }
   | { name: "bestof"; id: string }
@@ -20,6 +21,7 @@ export type Route =
 function parse(): Route {
   const h = window.location.hash.replace(/^#\/?/, "");
   const [a, b, c] = h.split("/");
+  if (a === "leonidex" || !a) return { name: "leonidex" };
   if (a === "p" && b && c === "bestof") return { name: "bestof", id: decodeURIComponent(b) };
   if (a === "p" && b && c === "game") return { name: "game", id: decodeURIComponent(b) };
   if (a === "p" && b && c === "stories") return { name: "stories", id: decodeURIComponent(b) };
@@ -31,8 +33,9 @@ function parse(): Route {
   if (a === "stats") return { name: "stats" };
   if (a === "publish-queue") return { name: "pubqueue" };
   if (a === "trash") return { name: "trash" };
-  if (a === "library") return { name: "publish", view: b === "calendar" ? "calendar" : "list" };
-  return { name: "library" };
+  if (a === "publish") return { name: "publish", view: b === "calendar" ? "calendar" : "list" };
+  if (a === "library") return { name: "library" };
+  return { name: "leonidex" };
 }
 
 export function useRoute(): Route {
@@ -49,7 +52,8 @@ export function useRoute(): Route {
 }
 
 export const href = {
-  library: "#/",
+  leonidex: "#/leonidex",
+  library: "#/library",
   settings: "#/settings",
   studio: (tab: StudioTab = "music") => `#/studio/${tab}`,
   queue: "#/queue",

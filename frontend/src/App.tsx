@@ -16,6 +16,7 @@ import { chooseLanguage } from "./meta";
 import Library from "./pages/Library";
 import ProjectPage from "./pages/Project";
 import EasyHome from "./pages/EasyHome";
+import Leonidex from "./pages/Leonidex";
 import { EasyTour, ProSwitch } from "./components/Easy";
 import { useUiMode } from "./uimode";
 import { HandoffHost } from "./components/Handoff";
@@ -45,13 +46,16 @@ function EasyTopBar() {
   const { connected } = useJobs();
   return (
     <header className="topbar ez-topbar">
-      <a className="brand" href={href.library} aria-label="SharkyClips">
+      <a className="brand" href={href.leonidex} aria-label="LEONIDEX">
         <span className="brand-mark">
           <BrandMark />
         </span>
-        <span className="brand-name">SharkyClips</span>
+        <span className="brand-name">LEONIDEX</span>
       </a>
       <nav className="nav">
+        <a href={href.leonidex} aria-current={route.name === "leonidex" ? "page" : undefined}>
+          🎮 LEONIDEX
+        </a>
         <a href={href.library} aria-current={route.name === "library" || route.name === "project" ? "page" : undefined}>
           {t("easy.nav_create")}
         </a>
@@ -110,13 +114,16 @@ function TopBar() {
 
   return (
     <header className="topbar">
-      <a className="brand" href={href.library} aria-label="SharkyClips">
+      <a className="brand" href={href.leonidex} aria-label="LEONIDEX">
         <span className="brand-mark">
           <BrandMark />
         </span>
-        <span className="brand-name">SharkyClips</span>
+        <span className="brand-name">LEONIDEX</span>
       </a>
       <nav className="nav">
+        <a href={href.leonidex} aria-current={route.name === "leonidex" ? "page" : undefined}>
+          🎮 LEONIDEX
+        </a>
         <a
           href={href.library}
           aria-current={["library", "project", "bestof", "game", "stories"].includes(route.name) ? "page" : undefined}
@@ -264,6 +271,7 @@ export default function App() {
       <ShutdownBanner />
       <div className="page-fx" key={mode + route.name + ("id" in route ? `:${route.id}` : "")}>
         <Suspense fallback={null}>
+        {route.name === "leonidex" && <Leonidex />}
         {route.name === "library" && (easy ? <EasyHome /> : <Library />)}
         {route.name === "settings" && (easy ? <EasySettings /> : <Settings />)}
         {route.name === "studio" && <Studio tab={route.tab} />}
